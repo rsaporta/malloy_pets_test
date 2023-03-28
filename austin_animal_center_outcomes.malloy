@@ -13,14 +13,72 @@
 //
 //    Processing need:
 //       remove " Mix" from Breed
+//
+//  
+// # SUCCESS
+//   Adoption
+//   Return to Owner
+//   Rto-Adopt
+//
+// # FAILURE
+//   Euthanasia
+//   Died
+//   Disposal
+//   Missing
+//
+// # REMOVING
+//   Transfer
+//   null
+//   Stolen   
 
 
-source: outcomes is table('duckdb:data/austin_animal_center_outcomes-cleaned.csv') {
-   measure: pet_count is count()
 
-   query: dogs_by_breed is {
-     where: animal_type = 'Dog'
-     group_by: breed
-     aggregate: pet_count
-   }
+
+
+source: dog_outcomes is table('duckdb:data/austin_animal_center_outcomes-cleaned.csv') {
+  where: 
+    animal_type = 'Dog',
+    outcome_type != 'Transfer',
+    outcome_type != 'Stolen',
+    outcome_type ~ '%%' // I can't find the syntax for NOT NULL
+  
+
+  dimension: 
+    main_breed is regexp_replace(breed, ' [Mm]ix', '')
+    is_mixed_breed is regexp_matches(breed, '( [Mm]ix|/)')
+    outcome_success is (outcome_type = 'Adoption' OR outcome_type = 'Return to Owner' OR outcome_type = 'Rto-Adopt')
+
+  measure: 
+    pet_count is count()
+
+  query: dogs_by_main_breed is {
+    group_by: main_breed
+    declare:
+      success_count is count() {where: outcome_success}
+      failure_count is count() {where: NOT outcome_success}
+    aggregate: 
+      pet_count
+      success_count
+      failure_count
+      success_rate is printf('%.1f %%', (success_count / pet_count) * 100 )
+  }
+
+  query: outcome_types is {
+    group_by: outcome_type
+    aggregate: pet_count
+  }
+
+
+  
+  query: dogs_by_breed_and_main_breed is {
+    order_by: main_breed
+    group_by: main_breed, breed, is_mixed_breed
+    aggregate: pet_count_by_breed is pet_count
+  }
+
+  query: dogs_by_main_breed_nested is {
+    order_by: main_breed
+    group_by: main_breed, breed, is_mixed_breed
+    aggregate: pet_count_by_breed is pet_count
+  } 
 }
