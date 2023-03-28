@@ -1,0 +1,26 @@
+//  Inspired by the pets workshop (and being a dogperson)
+//  Let's find some dog adoption data! 
+//
+//  Hey look, Austin Animal Center has open sourced their data
+//  If that's not serendipitous.
+//     https://data.austintexas.gov/Health-and-Community-Services/Austin-Animal-Center-Outcomes/9t4d-g238
+//
+//  Questions we want to answer:
+//    Are certain dogs more likely to be adopted than others?
+//        * Breeds?
+//        * Gender?
+//        * Gender x Breeds?
+//
+//    Processing need:
+//       remove " Mix" from Breed
+
+
+source: outcomes is table('duckdb:data/austin_animal_center_outcomes-cleaned.csv') {
+   measure: pet_count is count()
+
+   query: dogs_by_breed is {
+     where: animal_type = 'Dog'
+     group_by: breed
+     aggregate: pet_count
+   }
+}
