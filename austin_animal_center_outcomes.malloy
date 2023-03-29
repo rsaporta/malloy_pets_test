@@ -50,17 +50,26 @@ source: dog_outcomes is table('duckdb:data/austin_animal_center_outcomes-cleaned
 
   measure: 
     pet_count is count()
+    percent_of_pets is pet_count/all(pet_count)*100
 
-  query: dogs_by_main_breed is {
+  query: by_time_line_chart is {
+    group_by: out_month is datetime.month
+    aggregate: pet_count
+    group_by: outcome is pick 'good' when outcome_success else 'bad'
+  }
+
+  query: dogs_by_main_breed_dashboard is {
     group_by: main_breed
     declare:
       success_count is count() {where: outcome_success}
       failure_count is count() {where: NOT outcome_success}
     aggregate: 
       pet_count
+      percent_of_pets
       success_count
       failure_count
       success_rate is printf('%.1f %%', (success_count / pet_count) * 100 )
+    nest: by_time_line_chart
   }
 
   query: outcome_types is {
